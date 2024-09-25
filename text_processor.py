@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
     import itertools
-
+    from argparse import ArgumentParser
     import spacy
     from spacy.tokens import Span, Doc, DocBin
     from gensim.models import Phrases
@@ -14,16 +14,23 @@ if __name__ == "__main__":
     from gensim.models.phrases import Phraser, ENGLISH_CONNECTOR_WORDS
     from utilities import build_logger, flatten
 
-    DATA_DIR = Path("data")
+    argparser = ArgumentParser()
+    argparser.add_argument('--input', type=str, required=True, help='.csv file containing the texts and unique IDs')
+    argparser.add_argument('--output', type=str, required=True, help='name of output dir')
+    argparser.add_argument('--text_col', type=str, required=False, default='text')
+    argparser.add_argument('--id_col', type=str, required=False, default='id')
+    args = argparser.parse_args()
 
-    MESSAGE_PATH = Path(DATA_DIR, "sample_users.csv")
+    DATA_DIR = Path(args.output)
+
+    MESSAGE_PATH = Path(args.input)
     MODELS_DIR = Path("models")
     MODELS_DIR.mkdir(exist_ok=True)
     logger = build_logger("main", "log.log")
 
     TOKENISED_DOCS_PATH = Path(DATA_DIR, "tokenised_documents.txt")
     TOKENISED_SENTS_PATH = Path(DATA_DIR, "tokenised_sentences.txt")
-    SENTENCE_INDEX_PATH = Path(DATA_DIR, "sentence_index.pkl")
+    SENTENCE_INDEX_PATH = Path(DATA_DIR, "sentence_index.parquet")
 
     PHRASER_PATH = str(Path(MODELS_DIR, "phraser.bin"))
 
@@ -129,30 +136,15 @@ if __name__ == "__main__":
 
         return processed
 
-    df = pd.read_csv(MESSAGE_PATH, parse_dates=["created", "fwd_message_created"])
+    df = pd.read_csv(MESSAGE_PATH)
     # Convert ID fields to nullable integers
-    id_columns = [
-        "revision_id",
-        "uid",
-        "chat_id",
-        "fwd_message_id",
-        "fwd_uid",
-        "fwd_chat_id",
-        "rpl_message_id",
-        "rpl_uid",
-    ]
+    id_columns = [args.id_col]
 
     # Using convert_dtypes to automatically convert to the most suitable nullable types
     df[id_columns] = df[id_columns].convert_dtypes()
 
-    ## Filter non user messages
-    df = df[df["uid"].notna()]
 
-    ## Filter empty
-    df = df[df["text"].notna() & (df["text"] != "")]
-    df = df[df["text"].apply(lambda x: isinstance(x, str))]
-
-    texts = df["text"]
+    texts = df[args.text_col]
     id_lookup = df.index.tolist()
 
     model, bigrammed_sents = bigram_process(texts, detokenize="sentences", n_process=-1)
@@ -199,7 +191,7 @@ if __name__ == "__main__":
     data["text"] = processed_sents
     data = data[data["text"].str.len() > 0]
     data.reset_index(inplace=True, drop=True)
-    data[["doc", "sent", "unique_id", "text"]].to_pickle(SENTENCE_INDEX_PATH)
+    data[["doc", "sent", "unique_id", "text"]].to_parquet(SENTENCE_INDEX_PATH)
 
     with open(TOKENISED_SENTS_PATH, "w") as f:
         f.writelines("%s\n" % l for l in data["text"].tolist())
