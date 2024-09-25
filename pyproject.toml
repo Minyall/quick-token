@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "text_processor"
+version = "0.1.0"
+description = ""
+authors = ["James Allen-Robertson <minyall@gmail.com>"]
+readme = "README.md"
+packages = [{include = "text_processor"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.0"
+spacy = "^3.7.2"
+en_core_web_md = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.7.1/en_core_web_md-3.7.1.tar.gz"}
+gensim = "^4.3.2"
+tqdm = "^4.66.4"
+scipy = "1.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
