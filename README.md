@@ -18,5 +18,9 @@ python -m spacy download en_core_web_md
 
 ```
 # Basic Example
+```
 from quick_token import quick_token
+texts = ["Hello there", "how are you today", "I'm feeling great thank you!"]
+tokens = quick_token(texts)
+> ['', 'today', 'feel great thank']
 ```
